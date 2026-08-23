@@ -1,17 +1,23 @@
 import assert from "node:assert/strict";
 import fs from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import test from "node:test";
 
-async function render(pathname = "/") {
+async function fetchWorker(pathname = "/", init) {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
   workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
   const { default: worker } = await import(workerUrl.href);
 
   return worker.fetch(
-    new Request(`http://localhost${pathname}`, { headers: { accept: "text/html" } }),
+    new Request(`http://localhost${pathname}`, init),
     { ASSETS: { fetch: async () => new Response("Not found", { status: 404 }) } },
     { waitUntil() {}, passThroughOnException() {} },
   );
+}
+
+async function render(pathname = "/") {
+  return fetchWorker(pathname, { headers: { accept: "text/html" } });
 }
 
 test("server-renders the wedding invitation", async () => {
@@ -36,17 +42,43 @@ test("a Base64 URL suffix personalizes the invitation iframe", async () => {
   assert.match(html, /Thiệp cưới gửi Nguyễn Văn An/);
 });
 
-test("local wishes create the ignored project CSV file when missing", async () => {
-  const viteConfig = await fs.readFile(new URL("../vite.config.ts", import.meta.url), "utf8");
+test("production wishes API creates and updates the local CSV", async (context) => {
+  const temporaryDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "wedding-wishes-"));
+  const csvPath = path.join(temporaryDirectory, "data", "wishes.csv");
+  process.env.WISHES_CSV_PATH = csvPath;
+  context.after(async () => {
+    delete process.env.WISHES_CSV_PATH;
+    await fs.rm(temporaryDirectory, { recursive: true, force: true });
+  });
 
-  assert.match(viteConfig, /data["'], ["']wishes\.csv/);
-  assert.match(viteConfig, /const wishesCsvHeader = "id,name,message,created_at\\n"/);
-  assert.match(viteConfig, /async function ensureWishesCsv\(\)/);
-  assert.match(viteConfig, /fs\.mkdir\(path\.dirname\(wishesCsvPath\), \{ recursive: true \}\)/);
-  assert.match(viteConfig, /fs\.access\(wishesCsvPath\)/);
-  assert.match(viteConfig, /fs\.writeFile\(wishesCsvPath, wishesCsvHeader, "utf8"\)/);
-  assert.match(viteConfig, /fs\.appendFile\(wishesCsvPath/);
-  assert.match(viteConfig, /name: "local-csv-wishes"/);
+  const emptyResponse = await fetchWorker("/api/wishes", {
+    headers: { accept: "application/json" },
+  });
+  assert.equal(emptyResponse.status, 200);
+  assert.deepEqual(await emptyResponse.json(), { wishes: [] });
+  assert.equal(await fs.readFile(csvPath, "utf8"), "id,name,message,created_at\n");
+
+  const createResponse = await fetchWorker("/api/wishes", {
+    method: "POST",
+    headers: { "content-type": "application/json", accept: "application/json" },
+    body: JSON.stringify({ name: " San  ", message: " Trăm năm  hạnh phúc! " }),
+  });
+  assert.equal(createResponse.status, 201);
+  const created = await createResponse.json();
+  assert.equal(created.wish.id, 1);
+  assert.equal(created.wish.name, "San");
+  assert.equal(created.wish.message, "Trăm năm hạnh phúc!");
+
+  const listResponse = await fetchWorker("/api/wishes", {
+    headers: { accept: "application/json" },
+  });
+  assert.equal(listResponse.status, 200);
+  const listed = await listResponse.json();
+  assert.equal(listed.wishes.length, 1);
+  assert.deepEqual(listed.wishes[0], created.wish);
+
+  const csv = await fs.readFile(csvPath, "utf8");
+  assert.match(csv, /^id,name,message,created_at\n"1","San","Trăm năm hạnh phúc!","[^"]+"\n$/);
 });
 
 test("the mirrored invitation contains the requested sections and local assets", async () => {
