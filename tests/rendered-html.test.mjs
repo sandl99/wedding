@@ -81,6 +81,23 @@ test("production wishes API creates and updates the local CSV", async (context) 
   assert.match(csv, /^id,name,message,created_at\n"1","San","Trăm năm hạnh phúc!","[^"]+"\n$/);
 });
 
+test("the link preview points at the couple's own card", async () => {
+  const response = await render();
+  const html = await response.text();
+
+  assert.match(html, /<meta property="og:image" content="[^"]*\/og\.jpg">/);
+  assert.match(html, /<meta property="og:image:width" content="1731">/);
+  assert.match(html, /<meta property="og:image:height" content="909">/);
+  assert.match(html, /<meta name="twitter:card" content="summary_large_image">/);
+  // The venue is Cửa Lò; the template's description said Hội An.
+  assert.match(html, /Nhà hàng Sông Lam Palace, Cửa Lò, Nghệ An/);
+  assert.doesNotMatch(html, /Hội An/);
+  assert.doesNotMatch(html, /og\.png/);
+
+  await fs.access(new URL("../public/og.jpg", import.meta.url));
+  await assert.rejects(fs.access(new URL("../public/og.png", import.meta.url)));
+});
+
 test("the mirrored invitation contains the requested sections and local assets", async () => {
   const mirrorUrl = new URL("../public/mirror/index.html", import.meta.url);
   const html = await fs.readFile(mirrorUrl, "utf8");
@@ -106,13 +123,54 @@ test("the mirrored invitation contains the requested sections and local assets",
   assert.match(html, />và<\/span>/);
   assert.match(html, />Thu Trang<\/span>/);
   assert.match(html, /Lễ Thành hôn được tổ chức vào ngày/);
-  assert.match(html, /Lúc 11:00, Thứ Tư/);
+  assert.match(html, /Lúc 10:45, Thứ Tư/);
+
+  // Landing photo is chosen at random from five shots on each visit.
+  assert.match(html, /window\.__heroPhotos = \["\/uploads\/hero-KOA_7920\.webp"(,"\/uploads\/hero-KOA_\d+\.webp"){4}\]/);
+  assert.match(html, /window\.__heroPhoto = window\.__heroPhotos\[Math\.floor\(Math\.random\(\) \* window\.__heroPhotos\.length\)\]/);
+  assert.match(html, /<img id="hero-photo"(?![^>]*\ssrc=)/);
+  assert.match(html, /document\.getElementById\("hero-photo"\)\.src = window\.__heroPhoto/);
+  assert.doesNotMatch(html, /lam-san-thu-trang-hero\.jpg/);
+  assert.doesNotMatch(html, /Save the date/i);
+  // Hero carries only the names now; the date lives in the envelope and the letter.
+  assert.doesNotMatch(html, /data-node-id="(aY30A0HdPl|tnX45_TaYG)"/);
+  assert.match(html, /src="\/uploads\/thanks-KOA_8013\.webp"/);
+  // Thank you, after mehappy template 7: script word, message, then the names.
+  assert.match(html, /class="thanks-shell"/);
+  assert.match(html, /<p class="thanks-script[^"]*"[^>]*>Thank you!<\/p>/);
+  assert.match(html, /<p class="thanks-note[^"]*"[^>]*>Sự hiện diện của quý khách là niềm vinh hạnh cho gia đình chúng tôi<\/p>/);
+  assert.doesNotMatch(html, /Cảm ơn Quý khách đã dành tình cảm|món quà ý nghĩa nhất/);
+  assert.doesNotMatch(html, /thanks-names/);
+  assert.match(html, /\.thanks-script \{[^}]*52px\/1\.15 "Fz-Photograph\.ttf"/);
+  // The section is exactly the photo: no forced height, nothing cropped.
+  assert.match(html, /\.thanks-shell \{ position:relative; overflow:hidden; \}/);
+  assert.match(html, /\.thanks-photo \{ display:block; width:100%; height:auto; \}/);
+  assert.match(html, /\.thanks-body \{ position:absolute; z-index:2; inset:0;[^}]*justify-content:center;[^}]*transform:translateY\(26px\); \}/);
+  // A cream section revealing with translateY left a strip of white shell above it.
+  assert.match(html, /#album, #thanks \{ transform:none; \}/);
+  assert.match(html, /#album \.album-shell, #thanks \.thanks-shell \{ transform:translateY\(24px\)/);
+  assert.match(html, /#album\.is-visible \.album-shell, #thanks\.is-visible \.thanks-shell \{ transform:none; \}/);
+  assert.doesNotMatch(html, /\.thanks-shell \{[^}]*min-height/);
+  assert.doesNotMatch(html, /ofyUvfIiIG|YN9Yog1AwS|CbotDpkgUD/);
+  assert.match(html, /src="\/uploads\/event-nap-tai-KOA_8295\.webp"/);
+  assert.match(html, /src="\/uploads\/event-thanh-hon-KOA_8578\.webp"/);
+  // "Lịch cưới chúng mình" section removed.
+  assert.doesNotMatch(html, /Lịch cưới chúng mình|id="calendar"|mirror-calendar/);
   assert.match(html, /na01-date-part">30/);
   assert.match(html, /na01-date-part">09/);
   assert.match(html, /na01-date-year">2026/);
   assert.match(html, /na01-date-divider/);
   assert.match(html, /grid-template-columns:1fr 2px 1fr 2px 1fr;[^}]*column-gap:10px/);
   assert.match(html, /Sự hiện diện của quý khách là niềm vinh dự của gia đình chúng mình/);
+
+  // Sự Kiện Cưới now lists two events: Lễ Nạp Tài (29/09) then Lễ Thành Hôn (30/09).
+  assert.match(html, />Lễ Nạp Tài<\/span>/);
+  assert.match(html, /11h00 Thứ 3, ngày 29\/09\/2026/);
+  assert.match(html, /Số 194, đường Sào Nam, Nghi Thu 2, phường Cửa Lò, Nghệ An/);
+  assert.match(html, />Lễ Thành Hôn<\/span>/);
+  assert.match(html, /10h45 Thứ 4, ngày 30\/09\/2026/);
+  assert.doesNotMatch(html, /Tiệc Trà Nhà (Trai|Gái)/);
+  assert.doesNotMatch(html, /Tư gia nhà Trai|Nhuệ Giang, Đào Dương/);
   assert.doesNotMatch(html, /Hôn lễ được tổ chức vào lúc/i);
   assert.match(html, /data-node-id="6UaiRGcX3i"\], #invitation \[data-node-id="oSwXoiYKve"\], #invitation \[data-node-id="nIkhLt1nK3"\] \{ display:none!important/);
   assert.doesNotMatch(html, />Quang Huy<|>Mỹ\s+Linh</);
@@ -135,11 +193,11 @@ test("the mirrored invitation contains the requested sections and local assets",
   assert.doesNotMatch(html, /gate-open-state|openedEnvelopeIn|invitationCardRise|a4WGJg9RAq/);
   assert.match(html, /gate\.classList\.add\('opening'\)/);
   assert.match(html, /gate\.classList\.add\('leaving'\)/);
-  assert.match(html, /rel="preload" href="\/uploads\/lam-san-thu-trang-hero\.jpg" as="image" fetchpriority="high"/);
-  assert.match(html, /src="\/uploads\/lam-san-thu-trang-hero\.jpg"/);
+  // The chosen landing photo is preloaded at runtime, not from static markup.
+  assert.match(html, /link\.rel = "preload"; link\.as = "image";/);
+  assert.match(html, /link\.href = window\.__heroPhoto; link\.fetchPriority = "high"/);
   assert.match(html, /alt="Lâm San và Thu Trang trong ngày cưới"/);
-  assert.match(html, /#hero \[data-node-id="m5gLp11rTP"\] img \{[^}]*object-fit:cover!important/);
-  assert.match(html, /object-position:right 42%!important; transform:translateX\(-40px\) scale\(1\.08\)!important/);
+  assert.match(html, /#hero \[data-node-id="m5gLp11rTP"\] img \{[^}]*object-fit:cover!important; object-position:center 38%!important/);
   assert.match(html, /@font-face \{ font-family:"UTM ViceroyJF\.ttf"/);
   assert.match(html, /@font-face \{ font-family:"Fz-MyEverything\.ttf"/);
   assert.match(html, /const crossfadeDelay = reduceMotion \? 0 : 260/);
@@ -147,13 +205,73 @@ test("the mirrored invitation contains the requested sections and local assets",
   assert.match(html, /scheduleAutoScroll\(\)/);
   assert.doesNotMatch(html, /const removeDelay/);
   assert.doesNotMatch(html, /id="countdown"/);
-  assert.match(html, /id="calendar" data-section="calendar"/);
-  assert.match(html, /Lịch cưới chúng mình!/);
-  assert.match(html, /mirror-calendar-na02/);
-  assert.match(html, /Tháng 09 \/ 2026/);
-  assert.match(html, /mirror-calendar-day is-highlight is-eve">29</);
-  assert.match(html, /mirror-calendar-day is-highlight is-wedding">30</);
-  assert.match(html, /Beautiful/);
+  // Album: two columns of raw photos; the three landscape frames span both.
+  assert.match(html, /id="album" data-section="album"/);
+  assert.match(html, />Khoảnh khắc<\/h2>/);
+  assert.match(html, /40 khoảnh khắc của chúng mình/);
+  assert.match(html, /Chạm vào ảnh để xem lớn hơn/);
+  assert.doesNotMatch(html, /Từng tấm ảnh|album-note/);
+  // Two-column mosaic of mixed shapes, after mehappy template 8, paginated 10 a page.
+  const tiles = [...html.matchAll(/class="album-tile (ratio-\w+)(?: is-off)?" data-page-group="(\d)"/g)]
+    .map((m) => ({ shape: m[1], page: Number(m[2]) }));
+  assert.equal(tiles.length, 40);
+  assert.equal(tiles.filter((t) => t.shape === "ratio-wide").length, 3);
+  for (let page = 1; page <= 4; page += 1) {
+    assert.equal(tiles.filter((t) => t.page === page).length, 10, `page ${page} holds 10 photos`);
+  }
+  // Only page one is in flow at first paint.
+  assert.equal([...html.matchAll(/class="album-tile ratio-\w+ is-off"/g)].length, 30);
+
+  // Page one is the requested set, in a shuffled order rather than numeric.
+  const pageOne = [...html.matchAll(/data-photo="([^"]+)"[^]*?data-page-group/g)];
+  const grouped = [...html.matchAll(/data-page-group="(\d)"[^]*?data-photo="([^"]+)"/g)];
+  const firstTen = [...html.matchAll(/<figure class="album-tile [^"]*" data-page-group="1">.*?data-photo="([^"]+)"/g)]
+    .map((m) => m[1]);
+  assert.deepEqual([...firstTen].sort(), [
+    "KOA_7798", "KOA_7882", "KOA_7926", "KOA_7942", "KOA_7962",
+    "KOA_8295", "KOA_8303", "KOA_8340", "KOA_8451", "KOA_8544",
+  ]);
+  assert.notDeepEqual(firstTen, [...firstTen].sort(), "page one is shuffled, not numeric");
+
+  // Pager: prev, four numbered pages, next, and a range counter.
+  assert.equal([...html.matchAll(/class="album-page-btn" data-goto="\d"/g)].length, 4);
+  assert.match(html, /<button type="button" class="album-page-btn" data-goto="1" aria-current="page">1<\/button>/);
+  assert.match(html, /id="album-prev"/);
+  assert.match(html, /id="album-next"/);
+  assert.match(html, /<p class="album-count" id="album-count">1–10 của 40 ảnh<\/p>/);
+  assert.match(html, /const PAGE_SIZE = 10;/);
+  // Switching pages replays the cascade rather than showing the set flat.
+  assert.match(html, /void albumGrid\.offsetWidth;/);
+  assert.match(html, /\.album-tile\.is-off \{ display:none; \}/);
+  assert.match(html, /\.album-grid \{ columns:2; column-gap:10px; padding:0 30px; \}/);
+  assert.match(html, /\.album-tile \{ position:relative; margin:0 0 10px; break-inside:avoid; \}/);
+  assert.match(html, /\.album-tile\.ratio-tall \.album-open \{ aspect-ratio:2 \/ 3; \}/);
+  assert.doesNotMatch(html, /is-wide/);
+  // Rounded edges, in the spirit of linhntt.tanhm.org.
+  assert.match(html, /\.album-open \{[^}]*border-radius:14px/);
+  assert.match(html, /\.lightbox img \{ max-width:min\(100%,860px\)[^}]*border-radius:14px/);
+  // 96vw ignored the overlay padding and pushed the zoomed photo off-centre.
+  assert.doesNotMatch(html, /96vw/);
+  // Reveal is armed from script so a failed observer leaves photos visible.
+  assert.match(html, /albumGrid\.setAttribute\('data-reveal', ''\)/);
+  // Reveal mirrors the reference: pop from scale(.8) over .6s, cascading 100ms.
+  assert.match(html, /\.album-grid\[data-reveal\] \.album-tile \{ opacity:0; transform:scale\(\.8\);/);
+  assert.match(html, /transition:opacity \.6s ease-out, transform \.6s ease-out;/);
+  assert.match(html, /\.album-grid\[data-reveal\] \{ opacity:0; transition:opacity \.8s ease \.2s; \}/);
+  assert.match(html, /const STAGGER_MS = 100;/);
+  assert.match(html, /const MAX_STAGGER_STEPS = 5;/);
+  assert.match(html, /\.album-open:hover \{ transform:scale\(1\.05\)/);
+  assert.match(html, /\.album-open:active \{ transform:scale\(\.95\); \}/);
+  assert.match(html, /\.album-open:hover img \{ transform:scale\(1\.1\); \}/);
+  assert.equal([...html.matchAll(/<span class="album-veil"><span>Xem ảnh<\/span><\/span>/g)].length, 40);
+  // The script face needs a line box tall enough for its glyphs.
+  assert.match(html, /\.album-title \{[^}]*56px\/1\.92 "Fz-MyEverything\.ttf"/);
+  assert.match(html, /class="lightbox-nav lightbox-prev"/);
+  assert.match(html, /class="lightbox-nav lightbox-next"/);
+  assert.match(html, /'\/uploads\/gal-' \+ albumPhotos\[albumIndex\] \+ '-lg\.webp'/);
+  // The modal must sit above the floating music control (z-index 9999).
+  assert.match(html, /\.overlay \{ position:fixed; inset:0; z-index:10000;/);
+  assert.doesNotMatch(html, /Beautiful chapter|XEM THÊM|album-stack|album-swipe|Vuốt để lật trang|class="album-page[ "]|uploads\/album-/);
   assert.match(html, /Sự Kiện Cưới|Sự kiện cưới/i);
   assert.match(html, /id="wishes" data-section="wishes"/);
   assert.match(html, /data-node-id="jZoSO-0vz3"/);
@@ -170,8 +288,13 @@ test("the mirrored invitation contains the requested sections and local assets",
   assert.doesNotMatch(html, /quick-menu|menu-button|Mở mục lục|>☰</);
   assert.match(html, /class="na01-music-control"/);
   assert.match(html, /\.na01-music-control \{[^}]*left:max\(15px,calc\(\(100vw - 480px\)\/2 \+ 15px\)\)[^}]*width:50px[^}]*animation:na01MusicSpin 4s linear infinite,na01MusicPulse 2s ease-in-out infinite/);
-  assert.match(html, /id="music-button-icon" src="\/mirror\/assets\/[^"]+\.png"/);
-  assert.match(html, /const musicPauseIcon = '\/mirror\/assets\/[^"]+\.jpg'/);
+  // The .png is plain notes (sound on); the .jpg is notes with a slash (sound off).
+  // The button starts stopped, so it must start on the slashed icon.
+  assert.match(html, /id="music-button-icon" src="\/mirror\/assets\/[^"]+\.jpg" alt="Nhạc đang tắt"/);
+  assert.match(html, /const musicOnIcon = '\/mirror\/assets\/[^"]+\.png'/);
+  assert.match(html, /const musicOffIcon = '\/mirror\/assets\/[^"]+\.jpg'/);
+  assert.match(html, /await music\.play\(\);[\s\S]{0,200}?musicButtonIcon\.src = musicOnIcon/);
+  assert.match(html, /music\.pause\(\);[\s\S]{0,300}?musicButtonIcon\.src = musicOffIcon/);
   assert.match(html, /const AUTO_SCROLL_SPEED_PX_PER_SECOND = 44/);
   assert.match(html, /const AUTO_SCROLL_START_DELAY_MS = 650/);
   assert.doesNotMatch(html, /AUTO_SCROLL_TICK_MS|setInterval\(\(\) => autoScrollStep/);
@@ -202,10 +325,22 @@ test("the mirrored invitation contains the requested sections and local assets",
   assert.doesNotMatch(html, /https:\/\/s3-hcm-r2\.s3cloud\.vn/);
 
   const localAssets = [...html.matchAll(/src="(\/mirror\/assets\/[^"?]+)"/g)].map((match) => match[1]);
-  assert.ok(localAssets.length >= 20);
+  assert.ok(localAssets.length >= 8);
   for (const asset of new Set(localAssets)) {
     const assetUrl = new URL(`../public${asset}`, import.meta.url);
     await fs.access(assetUrl);
   }
-  await fs.access(new URL("../public/uploads/lam-san-thu-trang-hero.jpg", import.meta.url));
+  const uploads = [
+    ...[...html.matchAll(/"(\/uploads\/[^"?]+)"/g)].map((match) => match[1]),
+  ];
+  assert.equal(new Set(uploads).size, 49, "5 landing + thank-you + 2 events + song + 40 gallery photos");
+  for (const asset of new Set(uploads)) {
+    await fs.access(new URL(`../public${asset}`, import.meta.url));
+  }
+  // Full-size photos are referenced only from JS, so check them explicitly.
+  const photoNames = [...html.matchAll(/data-photo="([^"]+)"/g)].map((match) => match[1]);
+  assert.equal(new Set(photoNames).size, 40);
+  for (const name of photoNames) {
+    await fs.access(new URL(`../public/uploads/gal-${name}-lg.webp`, import.meta.url));
+  }
 });

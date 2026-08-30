@@ -8,8 +8,8 @@ export async function generateMetadata(): Promise<Metadata> {
   const protocol = requestHeaders.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
   const baseUrl = new URL(`${protocol}://${host}`);
   const title = "Lâm San & Thu Trang — Thiệp cưới";
-  const description = "Trân trọng kính mời bạn đến chung vui trong ngày cưới của Lâm San và Thu Trang tại Hội An.";
-  const socialImage = new URL("/og.png", baseUrl).toString();
+  const description = "Trân trọng kính mời bạn đến chung vui trong ngày cưới của Lâm San và Thu Trang — 10:45 thứ Tư, 30.09.2026 tại Nhà hàng Sông Lam Palace, Cửa Lò, Nghệ An.";
+  const socialImage = new URL("/og.jpg", baseUrl).toString();
 
   return {
     metadataBase: baseUrl,

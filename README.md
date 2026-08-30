@@ -26,6 +26,44 @@ This starter does not use `wrangler.jsonc`.
 - `examples/d1/` contains an optional D1 example surface
 - `drizzle.config.ts` supports local migration generation when needed
 
+## Adjusting Photo Framing
+
+Every photo is stored uncropped in `public/uploads/` and framed by CSS, so the
+visible window can be nudged by editing one number in
+`public/mirror/index.html` — no image regeneration, no rebuild of assets.
+
+The knob is `object-position: <horizontal> <vertical>` on the `<img>`. The box
+is smaller than the photo, so only part of the photo shows; these two
+percentages choose which part. **Lower = show more of the top/left.**
+
+| Section | `data-node-id` | Current value | Which value matters |
+| --- | --- | --- | --- |
+| Landing (5 photos) | `m5gLp11rTP` (in the `<style>` block) | `center 38%` | vertical — tall photo in a shorter box |
+| Lễ Nạp Tài | `UIfikQ6ZJg` | `center 15%` | vertical |
+| Lễ Thành Hôn | `Rdujm1NlyR` | `center 15%` | vertical |
+| Thank you | `ofyUvfIiIG` | `56% center` | horizontal — wide photo in a squarer box |
+
+So if faces sit too low in a card, **decrease** the vertical percentage
+(`15%` → `8%`); if heads are cut off at the top, **increase** it (`15%` → `25%`).
+Changes take effect on reload after `npm run build`. Steps of 5% are a good
+starting increment.
+
+To swap in a different photo, resize an original into `public/uploads/` and
+point the `src` at it — keep the full frame rather than pre-cropping, so
+`object-position` stays useful:
+
+```bash
+node -e "import('sharp').then(async ({default:s}) => {
+  await s('album/file/KOA_1234.jpg').rotate()
+    .resize(760, null, {fit:'inside'}).webp({quality:82})
+    .toFile('public/uploads/my-photo.webp');
+})"
+```
+
+The landing photo is picked at random per visit from the list in the
+`window.__heroPhotos` array near the top of `public/mirror/index.html`; add or
+remove entries there to change the rotation.
+
 ## Workspace Auth Headers
 
 Signed-in visitors receive both `oai-authenticated-user-id` and `oai-authenticated-user-email`. Private Sites require every visitor to sign in; public Sites may also have anonymous visitors, for whom neither header is present.
