@@ -287,7 +287,13 @@ test("the mirrored invitation contains the requested sections and local assets",
   assert.doesNotMatch(html, /Một Đời/);
   assert.doesNotMatch(html, /quick-menu|menu-button|Mở mục lục|>☰</);
   assert.match(html, /class="na01-music-control"/);
-  assert.match(html, /\.na01-music-control \{[^}]*left:max\(15px,calc\(\(100vw - 480px\)\/2 \+ 15px\)\)[^}]*width:50px[^}]*animation:na01MusicSpin 4s linear infinite,na01MusicPulse 2s ease-in-out infinite/);
+  assert.match(html, /\.na01-music-control \{[^}]*left:max\(15px,calc\(\(100vw - 480px\)\/2 \+ 15px\)\)[^}]*width:50px[^}]*animation:na01MusicSpin 4s linear infinite; \}/);
+  // The pulse animated box-shadow on a fixed element, repainting every frame
+  // while scrolling. It now animates opacity on a glow instead.
+  assert.match(html, /@keyframes na01MusicPulse \{ 0%,100% \{ opacity:\.35; \} 50% \{ opacity:1; \} \}/);
+  assert.match(html, /\.na01-music-control::before \{[^}]*animation:na01MusicPulse 2s ease-in-out infinite;/);
+  // Backdrop images used a filter chain that was identity apart from opacity.
+  assert.doesNotMatch(html, /filter: contrast\(100%\)[^;]*opacity\(35%\)/);
   // The .png is plain notes (sound on); the .jpg is notes with a slash (sound off).
   // The button starts stopped, so it must start on the slashed icon.
   assert.match(html, /id="music-button-icon" src="\/mirror\/assets\/[^"]+\.jpg" alt="Nhạc đang tắt"/);
