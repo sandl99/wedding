@@ -158,14 +158,14 @@
        rule from the letter, so the two date treatments read as one family. */
     #countdown { background:#fff; }
     .cd-shell { padding:54px 22px 58px; text-align:center; }
-    .cd-eyebrow { margin:0 0 10px; color:#b09a71; font:12px/1 Philosopher,serif; letter-spacing:.34em; text-transform:uppercase; }
+    .cd-eyebrow { margin:0 0 -2px; color:#927f5e; font:400 34px/1.35 "Dancing Script",cursive; }
     .cd-title { margin:0 0 30px; color:#927f5e; font:400 34px/1.35 "Dancing Script",cursive; }
     .cd-clock { display:flex; align-items:flex-start; justify-content:center; }
     .cd-unit { flex:1 1 0; min-width:0; }
     .cd-unit b { display:block; color:#7d6a48; font:400 40px/1.05 Philosopher,serif; font-variant-numeric:tabular-nums; }
     .cd-unit span { display:block; margin-top:8px; color:#b3a488; font:10px/1.2 Quicksand,sans-serif; letter-spacing:.16em; text-transform:uppercase; }
     .cd-sep { flex:0 0 2px; height:42px; margin-top:2px; background:rgb(146,131,98); opacity:.5; }
-    .cd-when { margin:28px 0 0; color:#a3906c; font:12px/1.5 Philosopher,serif; letter-spacing:.14em; text-transform:uppercase; }
+    .cd-when { margin:28px 0 0; color:#a3906c; font:14px/1.5 Philosopher,serif; letter-spacing:.13em; text-transform:uppercase; }
     .cd-done { margin:0; color:#927f5e; font:400 30px/1.4 "Fz-Photograph.ttf",cursive; }
     /* Falling hearts. transform + opacity only, so the compositor runs them with
        no per-frame main-thread work; hidden entirely for reduced motion. */
@@ -569,14 +569,24 @@
 
     const tilesOnPage = (page) => albumTiles.filter((tile) => tile.dataset.pageGroup === String(page));
 
-    function cascade(tiles) {
-      tiles.forEach((tile, position) => {
+    // Hold a tile back until its photo has actually decoded, otherwise the pop-in
+    // plays against an empty frame and the picture appears afterwards, unanimated.
+    function revealTile(tile, position) {
+      const show = () => {
         tile.style.transitionDelay = (Math.min(position, MAX_STAGGER_STEPS) * STAGGER_MS) + 'ms';
         tile.classList.add('is-in');
-      });
+      };
+      const photo = tile.querySelector('img');
+      if (!photo || (photo.complete && photo.naturalWidth > 0)) { show(); return; }
+      photo.addEventListener('load', show, { once: true });
+      photo.addEventListener('error', show, { once: true });
     }
 
-    function showPage(page, { animate = true } = {}) {
+    function cascade(tiles) {
+      tiles.forEach((tile, position) => revealTile(tile, position));
+    }
+
+    function showPage(page, { animate = true, reveal = true } = {}) {
       albumPage = page;
       albumTiles.forEach((tile) => tile.classList.toggle('is-off', tile.dataset.pageGroup !== String(page)));
       albumPageButtons.forEach((button) => {
@@ -589,6 +599,9 @@
       albumCount.textContent = first + '–' + Math.min(page * PAGE_SIZE, albumTotal) + ' của ' + albumTotal + ' ảnh';
 
       const shown = tilesOnPage(page);
+      // On first paint the observer owns the reveal; marking them here would skip
+      // the animation entirely, which is why page one used to just appear.
+      if (!reveal) return;
       if (!animate || reducedMotion) { shown.forEach((tile) => tile.classList.add('is-in')); return; }
       shown.forEach((tile) => { tile.classList.remove('is-in'); tile.style.transitionDelay = '0ms'; });
       void albumGrid.offsetWidth;   // flush the reset so the transition replays
@@ -627,13 +640,12 @@
             || a.boundingClientRect.left - b.boundingClientRect.left);
         arrived.forEach((entry, position) => {
           tileObserver.unobserve(entry.target);
-          entry.target.style.transitionDelay = (Math.min(position, MAX_STAGGER_STEPS) * STAGGER_MS) + 'ms';
-          entry.target.classList.add('is-in');
+          revealTile(entry.target, position);
         });
       }, { rootMargin: '0px 0px -8% 0px', threshold: .15 });
       tilesOnPage(1).forEach((tile) => tileObserver.observe(tile));
     }
-    showPage(1, { animate: false });
+    showPage(1, { animate: false, reveal: false });
 
     // Full-size photos are only fetched when one is actually opened.
     function openLightbox(index) {

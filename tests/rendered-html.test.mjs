@@ -278,6 +278,20 @@ test("the mirrored invitation contains the requested sections and local assets",
   assert.match(html, /Hôm nay là ngày trọng đại!/);
   // The dividers reuse the letter's gold rule so both date treatments match.
   assert.match(html, /\.cd-sep \{[^}]*background:rgb\(146,131,98\)/);
+  // Eyebrow and title share one face and size, so they read as a single heading.
+  const cdFont = /font:400 34px\/1\.35 "Dancing Script",cursive;/;
+  assert.match(html.match(/\.cd-eyebrow \{[^}]*\}/)[0], cdFont);
+  assert.match(html.match(/\.cd-title \{[^}]*\}/)[0], cdFont);
+  assert.match(html, /\.cd-when \{[^}]*font:14px\/1\.5 Philosopher/);
+
+  // Album tiles must not animate before their photo has decoded, and page one
+  // must be left to the observer or it would appear without animating at all.
+  assert.match(html, /function revealTile\(tile, position\)/);
+  assert.match(html, /photo\.addEventListener\('load', show, \{ once: true \}\)/);
+  assert.match(html, /photo\.addEventListener\('error', show, \{ once: true \}\)/);
+  assert.match(html, /tiles\.forEach\(\(tile, position\) => revealTile\(tile, position\)\)/);
+  assert.match(html, /showPage\(1, \{ animate: false, reveal: false \}\)/);
+  assert.match(html, /if \(!reveal\) return;/);
   assert.match(html, /\.na01-date-divider \{ width:2px;[^}]*background:rgb\(146,131,98\); \}/);
 
   assert.match(html, /id="album" data-section="album"/);
