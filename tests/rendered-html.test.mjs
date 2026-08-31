@@ -98,6 +98,57 @@ test("the link preview points at the couple's own card", async () => {
   await assert.rejects(fs.access(new URL("../public/og.png", import.meta.url)));
 });
 
+test("the English invitation is served at /en and stays in step with the Vietnamese", async () => {
+  const root = await render("/en");
+  assert.equal(root.status, 200);
+  const rootHtml = await root.text();
+  assert.match(rootHtml, /src="\/mirror\/en\/index\.html"/);
+  assert.match(rootHtml, /<title>Lâm San &amp; Thu Trang — Wedding Invitation<\/title>/);
+
+  const guestName = "Nguyễn Văn An";
+  const token = Buffer.from(guestName, "utf8").toString("base64url");
+  const guest = await render(`/en/${token}`);
+  assert.equal(guest.status, 200);
+  const guestHtml = await guest.text();
+  assert.match(guestHtml, new RegExp(`/mirror/en/index\\.html\\?guest=${encodeURIComponent(guestName)}`));
+  assert.match(guestHtml, /Wedding invitation for Nguyễn Văn An/);
+
+  const en = await fs.readFile(new URL("../public/mirror/en/index.html", import.meta.url), "utf8");
+  assert.match(en, /<html lang="en">/);
+  for (const phrase of [
+    "WEDDING INVITATION", "CORDIALLY INVITE", "to join the celebration with our families",
+    "Our wedding ceremony will be held on", "At 10:45 AM, Wednesday",
+    "Engagement Ceremony", "Wedding Ceremony", "Wedding Events",
+    "11:00 AM, Tuesday 29 September 2026", "10:45 AM, Wednesday 30 September 2026",
+    "Song Lam Palace Restaurant", "Bride&#39;s family home", "Send your wishes",
+    "View map", "Tap a photo to view it larger", "Your presence is an honour for our family",
+  ]) {
+    assert.ok(en.includes(phrase), `English card is missing: ${phrase}`);
+  }
+  // Nothing Vietnamese should survive except the couple's and families' names.
+  for (const phrase of [
+    "Xem bản đồ", "Gửi lời chúc", "Khoảnh khắc", "Lễ Nạp Tài", "Lễ Thành Hôn", "Sự Kiện Cưới",
+    "Chạm để mở", "Quý Khách", "Nhà Trai", "Nhà Gái", "lời chúc", "phóng lớn", "Album cưới",
+    "Chỉ đường", "Tư gia", "Thiệp cưới", "Đang tải",
+  ]) {
+    assert.ok(!en.includes(phrase), `English card still contains: ${phrase}`);
+  }
+  // The lunar date is dropped for English readers but kept in Vietnamese.
+  const vi = await fs.readFile(new URL("../public/mirror/index.html", import.meta.url), "utf8");
+  assert.ok(!en.includes("Bính Ngọ"));
+  assert.ok(vi.includes("Bính Ngọ"));
+
+  // Each card links to the other language, carrying the guest token.
+  assert.match(vi, /id="lang-switch"[^>]*hreflang="en">English<\/a>/);
+  assert.match(en, /id="lang-switch"[^>]*hreflang="vi">Tiếng Việt<\/a>/);
+  for (const card of [vi, en]) {
+    assert.match(card, /const isEnglish = path === '\/en' \|\| path\.startsWith\('\/en\/'\)/);
+    assert.match(card, /langSwitch\.href = isEnglish \? \(path\.slice\(3\) \|\| '\/'\) : \('\/en' \+ \(path === '\/' \? '' : path\)\)/);
+  }
+  // English runs longer than Vietnamese; these boxes needed retuning.
+  assert.match(en, /English-only layout corrections/);
+});
+
 test("the mirrored invitation contains the requested sections and local assets", async () => {
   const mirrorUrl = new URL("../public/mirror/index.html", import.meta.url);
   const html = await fs.readFile(mirrorUrl, "utf8");

@@ -155,6 +155,8 @@
     #album.is-visible .album-shell, #thanks.is-visible .thanks-shell { transform:none; }
     .mirror-section > .sections-wrapper { max-width:100%; }
     .floating-controls[hidden] { display:none; }
+    .lang-switch { position:fixed; z-index:9998; right:max(15px,calc((100vw - 480px)/2 + 15px)); bottom:max(19px,calc(env(safe-area-inset-bottom) + 4px)); padding:9px 15px; border:1px solid rgba(146,127,94,.4); border-radius:999px; background:rgba(255,253,248,.95); color:#7d6a48; font:12px/1 Quicksand,sans-serif; letter-spacing:.1em; text-decoration:none; box-shadow:0 8px 20px -12px rgba(60,45,25,.9); }
+    .lang-switch:focus-visible { outline:2px solid #927f5e; outline-offset:3px; }
     .na01-music-control { position:fixed; z-index:9999; left:max(15px,calc((100vw - 480px)/2 + 15px)); bottom:max(15px,env(safe-area-inset-bottom)); width:50px; height:50px; padding:0; border:0; border-radius:50%; display:flex; align-items:center; justify-content:center; background:#fff; box-shadow:rgba(139,0,0,.45) 0 0 16px; cursor:pointer; transition:transform .2s; animation:na01MusicSpin 4s linear infinite; }
     .na01-music-control::before { content:""; position:absolute; inset:-5px; border-radius:50%; box-shadow:rgba(139,0,0,.6) 0 0 20px,rgba(139,0,0,.45) 0 0 30px; animation:na01MusicPulse 2s ease-in-out infinite; pointer-events:none; }
     .na01-music-control:hover { transform:scale(1.1); box-shadow:rgba(0,0,0,.3) 0 4px 12px; }
@@ -182,13 +184,24 @@
 <section class="mirror-section" id="thanks" data-section="thanks"><div class="thanks-shell"><img class="thanks-photo" src="/uploads/thanks-KOA_8013.webp" width="1440" height="960" alt="Lâm San và Thu Trang" loading="eager" decoding="async"><div class="thanks-veil"></div><div class="thanks-body"><p class="thanks-script anim-hidden" data-na01-enter="up">Thank you!</p><p class="thanks-note anim-hidden" data-na01-enter="up">Sự hiện diện của quý khách là niềm vinh hạnh cho gia đình chúng tôi</p></div></div></section></main>
   <div class="floating-controls" hidden id="floating-controls">
     <button class="na01-music-control" type="button" id="music-button" aria-label="Phát bài Only You"><img id="music-button-icon" src="/mirror/assets/c0863f84466d25f1.jpg" alt="Nhạc đang tắt"></button>
+    <a class="lang-switch" id="lang-switch" href="/en" target="_top" hreflang="en">English</a>
   </div>
   <audio id="music" src="/uploads/only-you-from-78s.mp3" preload="auto" loop></audio>
-  <div class="overlay lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Album ảnh cưới"><button class="overlay-close" type="button" aria-label="Đóng">×</button><button class="lightbox-nav lightbox-prev" type="button" aria-label="Trang trước">‹</button><img alt="Album cưới phóng lớn"><button class="lightbox-nav lightbox-next" type="button" aria-label="Trang sau">›</button><p class="lightbox-count" id="lightbox-count">01 / 15</p></div>
+  <div class="overlay lightbox" id="lightbox" role="dialog" aria-modal="true" aria-label="Album ảnh cưới"><button class="overlay-close" type="button" aria-label="Đóng">×</button><button class="lightbox-nav lightbox-prev" type="button" aria-label="Trang trước">‹</button><img alt="Album cưới phóng lớn"><button class="lightbox-nav lightbox-next" type="button" aria-label="Trang sau">›</button><p class="lightbox-count" id="lightbox-count">01 / 40</p></div>
   <script>
     const gate = document.querySelector('#gate');
     const page = document.querySelector('#invitation-page');
     const controls = document.querySelector('#floating-controls');
+    // The card runs in an iframe, so the toggle has to rewrite the parent URL and
+    // carry the guest token across. Same-origin, but guard anyway.
+    const langSwitch = document.querySelector('#lang-switch');
+    if (langSwitch) {
+      try {
+        const path = window.top.location.pathname;
+        const isEnglish = path === '/en' || path.startsWith('/en/');
+        langSwitch.href = isEnglish ? (path.slice(3) || '/') : ('/en' + (path === '/' ? '' : path));
+      } catch (_) { /* keep the static fallback */ }
+    }
     const music = document.querySelector('#music');
     const musicButton = document.querySelector('#music-button');
     const musicButtonIcon = document.querySelector('#music-button-icon');
