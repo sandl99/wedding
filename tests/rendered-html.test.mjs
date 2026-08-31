@@ -146,6 +146,12 @@ test("the English invitation is served at /en and stays in step with the Vietnam
     assert.match(card, /langSwitch\.href = isEnglish \? \(path\.slice\(3\) \|\| '\/'\) : \('\/en' \+ \(path === '\/' \? '' : path\)\)/);
   }
   // English runs longer than Vietnamese; these boxes needed retuning.
+  for (const phrase of ["Countdown", ">The Big Day</h2>", "<span>Days</span>", "<span>Hours</span>",
+                        "<span>Minutes</span>", "<span>Seconds</span>",
+                        "10:45 AM · Wednesday · 30 September 2026", "Today is the big day!"]) {
+    assert.ok(en.includes(phrase), `English countdown is missing: ${phrase}`);
+  }
+  assert.ok(!en.includes("Ngày trọng đại") && !en.includes("<span>Giây</span>"));
   assert.match(en, /English-only layout corrections/);
 });
 
@@ -255,8 +261,25 @@ test("the mirrored invitation contains the requested sections and local assets",
   assert.match(html, /event\.animationName === 'gateToMain'/);
   assert.match(html, /scheduleAutoScroll\(\)/);
   assert.doesNotMatch(html, /const removeDelay/);
-  assert.doesNotMatch(html, /id="countdown"/);
   // Album: two columns of raw photos; the three landscape frames span both.
+  // Countdown sits between the letter and the album.
+  assert.match(html, /id="countdown" data-section="countdown"/);
+  assert.ok(html.indexOf('id="countdown"') > html.indexOf('id="invitation"'));
+  assert.ok(html.indexOf('id="countdown"') < html.indexOf('id="album"'));
+  assert.equal([...html.matchAll(/<b data-cd="(days|hours|minutes|seconds)">/g)].length, 4);
+  for (const label of ["Ngày", "Giờ", "Phút", "Giây"]) {
+    assert.ok(html.includes(`<span>${label}</span>`), `countdown is missing ${label}`);
+  }
+  assert.match(html, /10:45 · Thứ Tư · 30\.09\.2026/);
+  // An absolute instant, so guests abroad count to the real moment.
+  assert.match(html, /const CEREMONY_AT = Date\.parse\('2026-09-30T10:45:00\+07:00'\)/);
+  assert.match(html, /setInterval\(drawCountdown, 1000\)/);
+  assert.match(html, /document\.hidden \? stopCountdown\(\) : startCountdown\(\)/);
+  assert.match(html, /Hôm nay là ngày trọng đại!/);
+  // The dividers reuse the letter's gold rule so both date treatments match.
+  assert.match(html, /\.cd-sep \{[^}]*background:rgb\(146,131,98\)/);
+  assert.match(html, /\.na01-date-divider \{ width:2px;[^}]*background:rgb\(146,131,98\); \}/);
+
   assert.match(html, /id="album" data-section="album"/);
   assert.match(html, />Khoảnh khắc<\/h2>/);
   assert.match(html, /40 khoảnh khắc của chúng mình/);

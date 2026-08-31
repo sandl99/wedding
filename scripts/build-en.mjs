@@ -90,6 +90,16 @@ swap("11h00 Thứ 3, ngày 29/09/2026", "11:00 AM, Tuesday 29 September 2026");
 swap("10h45 Thứ 4, ngày 30/09/2026", "10:45 AM, Wednesday 30 September 2026");
 swap(">Xem bản đồ<", ">View map<", 3);
 
+// ---- countdown ---------------------------------------------------------
+swap(">Đếm ngược<", ">Countdown<");
+swap(">Ngày trọng đại</h2>", ">The Big Day</h2>");
+swap("<span>Ngày</span>", "<span>Days</span>");
+swap("<span>Giờ</span>", "<span>Hours</span>");
+swap("<span>Phút</span>", "<span>Minutes</span>");
+swap("<span>Giây</span>", "<span>Seconds</span>");
+swap(">10:45 · Thứ Tư · 30.09.2026<", ">10:45 AM · Wednesday · 30 September 2026<");
+swap("'<p class=\"cd-done\">Hôm nay là ngày trọng đại!</p>'", "'<p class=\"cd-done\">Today is the big day!</p>'");
+
 // ---- album -------------------------------------------------------------
 swap(">Album cưới<", ">Wedding album<");
 swap(">Khoảnh khắc<", ">Moments<");
@@ -156,7 +166,7 @@ const enOverrides = `
     /* English-only layout corrections */
     #invitation [data-node-id="hNdJYzjrnS"] { font-size:17px!important; }
     #invitation [data-node-id="wEMxdNSL-C"], #invitation [data-node-id="GiB_2IUSzI"] { font-size:13px!important; }
-    #events [data-node-id="gafH64GJMv"], #events [data-node-id="70aRKc0M6x"] { width:166px!important; font-size:16px!important; }
+    #events [data-node-id="gafH64GJMv"], #events [data-node-id="70aRKc0M6x"] { width:166px!important; font-size:16px!important; }\n    #countdown .cd-unit span { font-size:9px!important; letter-spacing:.1em!important; }
   </style>`;
 if (!html.includes("</style>")) misses.push("no </style> to append English overrides to");
 else html = html.replace("</style>", enOverrides);
