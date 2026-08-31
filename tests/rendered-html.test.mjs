@@ -357,6 +357,19 @@ test("the mirrored invitation contains the requested sections and local assets",
   // while scrolling. It now animates opacity on a glow instead.
   assert.match(html, /@keyframes na01MusicPulse \{ 0%,100% \{ opacity:\.35; \} 50% \{ opacity:1; \} \}/);
   assert.match(html, /\.na01-music-control::before \{[^}]*animation:na01MusicPulse 2s ease-in-out infinite;/);
+
+  // Falling hearts, after quiet-vip.mehappy.info. That site redraws a canvas
+  // every frame; this animates transform/opacity so the compositor owns it.
+  assert.equal([...html.matchAll(/<span style="--x:/g)].length, 16);
+  assert.match(html, /\.heart-fall \{ position:fixed; inset:0; z-index:30; pointer-events:none; overflow:hidden; display:none; \}/);
+  assert.match(html, /body:not\(\.gate-active\) \.heart-fall \{ display:block; \}/);
+  assert.match(html, /@media \(prefers-reduced-motion:reduce\) \{ \.heart-fall \{ display:none!important; \} \}/);
+  // The keyframes must not touch anything that would force a repaint.
+  const heartKeyframes = html.match(/@keyframes heartFall \{[\s\S]*?\n    \}/)[0];
+  for (const prop of heartKeyframes.matchAll(/(?:^|[{;\s])([a-z-]+):/g)) {
+    assert.ok(["transform", "opacity"].includes(prop[1]),
+      `heartFall animates ${prop[1]}; only transform/opacity stay on the compositor`);
+  }
   // Backdrop images used a filter chain that was identity apart from opacity.
   assert.doesNotMatch(html, /filter: contrast\(100%\)[^;]*opacity\(35%\)/);
   // The .png is plain notes (sound on); the .jpg is notes with a slash (sound off).
