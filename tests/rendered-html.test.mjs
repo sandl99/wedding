@@ -280,6 +280,20 @@ test("the mirrored invitation contains the requested sections and local assets",
   assert.match(html, /Tên của bạn \*/);
   assert.match(html, /Lời chúc của bạn \*/);
   assert.match(html, /fetch\('\/api\/wishes'/);
+
+  // "Xem bản đồ" used to be a div with no link at all.
+  assert.equal([...html.matchAll(/class="mirror-map-link"/g)].length, 2);
+  assert.match(html, /class="mirror-map-link" href="https:\/\/maps\.app\.goo\.gl\/L5DeBjU28QDr6jky9\?g_st=ifm"[^>]*aria-label="Xem bản đồ Lễ Nạp Tài"/);
+  assert.match(html, /class="mirror-map-link" href="https:\/\/www\.google\.com\/maps\/search\/[^"]*S%C3%B4ng%20Lam%20Palace[^"]*"[^>]*aria-label="Xem bản đồ Lễ Thành Hôn"/);
+  assert.match(html, /\.mirror-map-link \{ position:absolute; inset:0;/);
+
+  // The wish list was a fixed 401px box; it now grows to its content and caps
+  // at roughly six wishes, then scrolls.
+  assert.match(html, /class="wish-list-container[^"]*"[^>]*style="width: 366px; max-height: 401px;/);
+  assert.match(html, /\.wish-list-scroll \{ width:100%; max-height:401px; overflow:auto;/);
+  assert.doesNotMatch(html, /style="width: 366px; height: 401px;/);
+  assert.match(html, /function fitWishSection\(\)/);
+  assert.match(html, /new ResizeObserver\(fitWishSection\)\.observe\(wishListBox\)/);
   assert.match(html, /method:'POST'/);
   assert.match(html, /createWishElement/);
   assert.match(html, /Only You/);
