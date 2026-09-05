@@ -86,7 +86,7 @@ swap('aria-label="Xem bản đồ Lễ Nạp Tài"', 'aria-label="View map for t
 swap('aria-label="Xem bản đồ Lễ Thành Hôn"', 'aria-label="View map for the Wedding Ceremony"');
 swap('alt="Lễ Nạp Tài"', 'alt="Engagement Ceremony"');
 swap('alt="Lễ Thành Hôn"', 'alt="Wedding Ceremony"');
-swap("11h00 Thứ 3, ngày 29/09/2026", "11:00 AM, Tuesday 29 September 2026");
+swap("10h30 Thứ 3, ngày 29/09/2026", "10:30 AM, Tuesday 29 September 2026");
 swap("10h45 Thứ 4, ngày 30/09/2026", "10:45 AM, Wednesday 30 September 2026");
 swap(">Xem bản đồ<", ">View map<", 3);
 

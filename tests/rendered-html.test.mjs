@@ -119,7 +119,7 @@ test("the English invitation is served at /en and stays in step with the Vietnam
     "WEDDING INVITATION", "CORDIALLY INVITE", "to join the celebration with our families",
     "Our wedding ceremony will be held on", "At 10:45 AM, Wednesday",
     "Engagement Ceremony", "Wedding Ceremony", "Wedding Events",
-    "11:00 AM, Tuesday 29 September 2026", "10:45 AM, Wednesday 30 September 2026",
+    "10:30 AM, Tuesday 29 September 2026", "10:45 AM, Wednesday 30 September 2026",
     "Song Lam Palace Restaurant", "Bride&#39;s family home", "Send your wishes",
     "View map", "Tap a photo to view it larger", "Your presence is an honour for our family",
   ]) {
@@ -222,7 +222,7 @@ test("the mirrored invitation contains the requested sections and local assets",
 
   // Sự Kiện Cưới now lists two events: Lễ Nạp Tài (29/09) then Lễ Thành Hôn (30/09).
   assert.match(html, />Lễ Nạp Tài<\/span>/);
-  assert.match(html, /11h00 Thứ 3, ngày 29\/09\/2026/);
+  assert.match(html, /10h30 Thứ 3, ngày 29\/09\/2026/);
   assert.match(html, /Số 194, đường Sào Nam, Nghi Thu 2, phường Cửa Lò, Nghệ An/);
   assert.match(html, />Lễ Thành Hôn<\/span>/);
   assert.match(html, /10h45 Thứ 4, ngày 30\/09\/2026/);
