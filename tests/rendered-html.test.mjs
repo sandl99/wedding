@@ -135,8 +135,8 @@ test("the English invitation is served at /en and stays in step with the Vietnam
   }
   // The lunar date is dropped for English readers but kept in Vietnamese.
   const vi = await fs.readFile(new URL("../public/mirror/index.html", import.meta.url), "utf8");
-  assert.ok(!en.includes("Bính Ngọ"));
-  assert.ok(vi.includes("Bính Ngọ"));
+  assert.ok(!en.includes("bính ngọ"));
+  assert.ok(vi.includes("bính ngọ"));
 
   // Each card links to the other language, carrying the guest token.
   assert.match(vi, /id="lang-switch"[^>]*hreflang="en">English<\/a>/);
@@ -431,7 +431,7 @@ test("the mirrored invitation contains the requested sections and local assets",
   assert.match(html, /FBAN\|FBAV\|FB_IAB\|Messenger\|Instagram/);
   assert.match(html, /pauseMusic\(true\)/);
   assert.match(html, /30\.09\.2026/);
-  assert.match(html, /Tức ngày 19\/8 năm Bính Ngọ/);
+  assert.match(html, /Tức ngày 20\/8 năm bính ngọ/);
   assert.match(html, /Nhà hàng Sông Lam Palace/);
   assert.match(html, /421 đường Phạm Nguyễn Du, phường Cửa Lò, tỉnh Nghệ An/);
   assert.match(html, /Ông Đặng Văn Trịnh<br>Bà Hoàng Thị Nhung/);

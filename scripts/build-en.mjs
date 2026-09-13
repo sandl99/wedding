@@ -53,7 +53,7 @@ swap("Bà Võ Thị Thanh An", "Mrs. Võ Thị Thanh An");
 swap(">và<", ">and<");
 // The lunar date is dropped for English readers. Locate the block by its own
 // text rather than a node id, and refuse to cut anything that holds more.
-const lunarText = "(Tức ngày 19/8 năm Bính Ngọ)";
+const lunarText = "(Tức ngày 20/8 năm bính ngọ)";
 {
   const at = html.indexOf(lunarText);
   if (at === -1) misses.push("lunar-date text not found");
