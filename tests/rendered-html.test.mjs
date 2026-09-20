@@ -84,26 +84,38 @@ test("production wishes API creates and updates the local CSV", async (context) 
 
 test("the link preview points at the couple's own card", async () => {
   const token = "Q2jDoXUgWeG6v24gUGhpIA";
-  const response = await fetchWorker(`/${token}`, {
-    headers: {
-      accept: "text/html",
-      host: "172.21.0.1:3101",
-      "x-forwarded-host": "sanchan.date",
-      "x-forwarded-proto": "https",
-    },
-  });
-  const html = await response.text();
+  const crawlerUserAgents = [
+    "facebookexternalhit/1.1",
+    "Facebot",
+    "FacebookBot/1.0",
+    "meta-externalfetcher/1.1",
+  ];
 
-  assert.match(html, new RegExp(`<meta property="og:url" content="https://sanchan\\.date/${token}">`));
-  assert.match(html, /<meta property="og:image" content="https:\/\/sanchan\.date\/og\.jpg">/);
-  assert.match(html, /<meta property="og:image:type" content="image\/jpeg">/);
-  assert.match(html, /<meta property="og:image:width" content="1731">/);
-  assert.match(html, /<meta property="og:image:height" content="909">/);
-  assert.match(html, /<meta name="twitter:card" content="summary_large_image">/);
-  // The venue is Cửa Lò; the template's description said Hội An.
-  assert.match(html, /Nhà hàng Sông Lam Palace, Cửa Lò, Nghệ An/);
-  assert.doesNotMatch(html, /Hội An/);
-  assert.doesNotMatch(html, /og\.png/);
+  for (const userAgent of crawlerUserAgents) {
+    const response = await fetchWorker(`/${token}`, {
+      headers: {
+        accept: "text/html",
+        host: "172.21.0.1:3101",
+        "user-agent": userAgent,
+        "x-forwarded-host": "sanchan.date",
+        "x-forwarded-proto": "https",
+      },
+    });
+    const html = await response.text();
+    const head = html.slice(0, html.indexOf("</head>"));
+
+    assert.equal(response.status, 200, userAgent);
+    assert.match(head, new RegExp(`<meta property="og:url" content="https://sanchan\\.date/${token}"\\s*/?>`), userAgent);
+    assert.match(head, /<meta property="og:image" content="https:\/\/sanchan\.date\/og\.jpg"\s*\/?>/, userAgent);
+    assert.match(head, /<meta property="og:image:type" content="image\/jpeg"\s*\/?>/, userAgent);
+    assert.match(head, /<meta property="og:image:width" content="1731"\s*\/?>/, userAgent);
+    assert.match(head, /<meta property="og:image:height" content="909"\s*\/?>/, userAgent);
+    assert.match(head, /<meta name="twitter:card" content="summary_large_image"\s*\/?>/, userAgent);
+    // The venue is Cửa Lò; the template's description said Hội An.
+    assert.match(head, /Nhà hàng Sông Lam Palace, Cửa Lò, Nghệ An/, userAgent);
+    assert.doesNotMatch(head, /Hội An/, userAgent);
+    assert.doesNotMatch(head, /og\.png/, userAgent);
+  }
 
   await fs.access(new URL("../public/og.jpg", import.meta.url));
   await assert.rejects(fs.access(new URL("../public/og.png", import.meta.url)));
