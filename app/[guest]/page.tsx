@@ -1,3 +1,16 @@
+import type { Metadata } from "next";
+import { weddingMetadata } from "../wedding-metadata";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ guest: string }>;
+}): Promise<Metadata> {
+  const { guest } = await params;
+  const pathname = /^[A-Za-z0-9_-]{2,160}$/.test(guest) ? `/${guest}` : "/";
+  return weddingMetadata(pathname, "vi");
+}
+
 function decodeGuestToken(token: string): string {
   if (!/^[A-Za-z0-9_-]{2,160}$/.test(token)) return "";
 

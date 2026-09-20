@@ -40,6 +40,7 @@ test("a Base64 URL suffix personalizes the invitation iframe", async () => {
   assert.equal(response.status, 200);
   assert.match(html, new RegExp(`/mirror/index\\.html\\?guest=${encodeURIComponent(guestName)}`));
   assert.match(html, /Thiệp cưới gửi Nguyễn Văn An/);
+  assert.match(html, new RegExp(`<meta property="og:url" content="http://localhost:3000/${token}">`));
 });
 
 test("production wishes API creates and updates the local CSV", async (context) => {
@@ -82,10 +83,20 @@ test("production wishes API creates and updates the local CSV", async (context) 
 });
 
 test("the link preview points at the couple's own card", async () => {
-  const response = await render();
+  const token = "Q2jDoXUgWeG6v24gUGhpIA";
+  const response = await fetchWorker(`/${token}`, {
+    headers: {
+      accept: "text/html",
+      host: "172.21.0.1:3101",
+      "x-forwarded-host": "sanchan.date",
+      "x-forwarded-proto": "https",
+    },
+  });
   const html = await response.text();
 
-  assert.match(html, /<meta property="og:image" content="[^"]*\/og\.jpg">/);
+  assert.match(html, new RegExp(`<meta property="og:url" content="https://sanchan\\.date/${token}">`));
+  assert.match(html, /<meta property="og:image" content="https:\/\/sanchan\.date\/og\.jpg">/);
+  assert.match(html, /<meta property="og:image:type" content="image\/jpeg">/);
   assert.match(html, /<meta property="og:image:width" content="1731">/);
   assert.match(html, /<meta property="og:image:height" content="909">/);
   assert.match(html, /<meta name="twitter:card" content="summary_large_image">/);
@@ -104,6 +115,8 @@ test("the English invitation is served at /en and stays in step with the Vietnam
   const rootHtml = await root.text();
   assert.match(rootHtml, /src="\/mirror\/en\/index\.html"/);
   assert.match(rootHtml, /<title>Lâm San &amp; Thu Trang — Wedding Invitation<\/title>/);
+  assert.match(rootHtml, /<meta property="og:locale" content="en_US">/);
+  assert.match(rootHtml, /<meta property="og:url" content="http:\/\/localhost:3000\/en">/);
 
   const guestName = "Nguyễn Văn An";
   const token = Buffer.from(guestName, "utf8").toString("base64url");
@@ -112,6 +125,7 @@ test("the English invitation is served at /en and stays in step with the Vietnam
   const guestHtml = await guest.text();
   assert.match(guestHtml, new RegExp(`/mirror/en/index\\.html\\?guest=${encodeURIComponent(guestName)}`));
   assert.match(guestHtml, /Wedding invitation for Nguyễn Văn An/);
+  assert.match(guestHtml, new RegExp(`<meta property="og:url" content="http://localhost:3000/en/${token}">`));
 
   const en = await fs.readFile(new URL("../public/mirror/en/index.html", import.meta.url), "utf8");
   assert.match(en, /<html lang="en">/);
