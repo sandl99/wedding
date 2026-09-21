@@ -39,7 +39,6 @@ export async function weddingMetadata(
     metadataBase: baseUrl,
     title,
     description,
-    icons: { icon: "/favicon.png" },
     alternates: { canonical: pageUrl },
     openGraph: {
       title,

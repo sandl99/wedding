@@ -28,6 +28,7 @@ test("server-renders the wedding invitation", async () => {
   const html = await response.text();
   assert.match(html, /<title>Lâm San &amp; Thu Trang — Thiệp cưới<\/title>/i);
   assert.match(html, /src="\/mirror\/index\.html"/);
+  assert.doesNotMatch(html, /<link rel="icon"/);
   assert.doesNotMatch(html, /codex-preview|react-loading-skeleton/);
 });
 
